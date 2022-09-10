@@ -3,7 +3,6 @@ use ndarray::Array;
 extern crate crossbeam;
 extern crate queues;
 extern crate threadpool;
-use colored::*;
 use crossbeam::queue::SegQueue;
 use rand::Rng;
 use std::sync::Arc;
@@ -15,32 +14,30 @@ use threadpool::ThreadPool;
 // pub static HEIGHT_OFFSET: isize = (HEIGHT / 2) as isize;
 // pub static WIDTH_OFFSET: isize = (WIDTH / 2) as isize;
 
-static POP_MIN: u32 = 3;
-static POP_MAX: u32 = 6;
+static POP_MIN: u32 = 5;
+static POP_MAX: u32 = 10;
 
-pub static HEIGHT: usize = 801;
-pub static WIDTH: usize = 801;
+pub static HEIGHT: usize = 199 + 1;
+pub static WIDTH: usize = 199 + 1;
 pub static NUMBER_THREADS: usize = 32;
-pub static HEIGHT_OFFSET: isize = ((HEIGHT - 1) / 2) as isize;
-pub static WIDTH_OFFSET: isize = ((WIDTH - 1) / 2) as isize;
 
 // static GOL_MIN_X: usize = 1;
 static GOL_MIN_Y: usize = 1;
 static GOL_MAX_X: usize = HEIGHT - 2;
 static GOL_MAX_Y: usize = WIDTH - 2;
 
-fn x_position(position: isize) -> usize {
-    (position + WIDTH_OFFSET) as usize
-}
+//fn x_position(position: isize) -> usize {
+//    (position + WIDTH_OFFSET) as usize
+//}
 
-fn y_position(position: isize) -> usize {
-    (position + HEIGHT_OFFSET) as usize
-}
+//fn y_position(position: isize) -> usize {
+//    (position + HEIGHT_OFFSET) as usize
+//}
 
 #[derive(Clone, Debug, Copy)]
 pub struct Cell_Action {
-    x: isize,
-    y: isize,
+    x: usize,
+    y: usize,
     new_age: u32,
     new_value: u32,
 }
@@ -80,46 +77,48 @@ impl Grid {
             width: WIDTH,
         }
     }
-    pub fn set_value(x: isize, y: isize, value: Cell, grid: &mut Grid) {
+    pub fn set_value(x: usize, y: usize, value: Cell, grid: &mut Grid) {
         grid.grid
-            .slice_mut(s![x_position(x), x_position(y)])
+            //.slice_mut(s![x_position(x), y_position(y)])
+            .slice_mut(s![x, y])
             .fill(value);
     }
 
-    pub fn get_value(x: isize, y: isize, grid: &Grid) -> Cell {
-        return grid.grid[[x_position(x) as usize, y_position(y) as usize]];
+    pub fn get_value(x: usize, y: usize, grid: &Grid) -> Cell {
+        //return grid.grid[[x_position(x) as usize, y_position(y) as usize]];
+        return grid.grid[[x as usize, y as usize]];
     }
 }
 
 pub fn randomize_grid(grid: &mut Grid) {
     let mut rng = rand::thread_rng();
-    for x in (0 - WIDTH_OFFSET + 2)..(0 + WIDTH_OFFSET - 1) {
-        for y in (0 - HEIGHT_OFFSET + 2)..(0 + HEIGHT_OFFSET - 1) {
+    for x in 2..(WIDTH - 1 - 2) {
+        for y in 2..(HEIGHT - 1 - 2) {
             Grid::set_value(x, y, Cell::new_with_value(rng.gen_range(0..=1)), grid)
         }
     }
 }
 
-pub fn print_grid(grid: &mut Grid) {
-    for y in (0 - HEIGHT_OFFSET)..=(0 + HEIGHT_OFFSET) {
-        for x in (0 - WIDTH_OFFSET)..=(0 + WIDTH_OFFSET) {
-            let cell = Grid::get_value(x as isize, y as isize, grid);
-            let value = Cell::get_value(&cell);
-            match value {
-                1 => {
-                    print!("{}", "0".red());
-                }
-                _ => {
-                    print!("{}", "0".blue());
-                }
-            }
-        }
-        println!("")
-    }
-}
+// pub fn print_grid(grid: &mut Grid) {
+//     for y in (0 - HEIGHT_OFFSET)..=(0 + HEIGHT_OFFSET) {
+//         for x in (0 - WIDTH_OFFSET)..=(0 + WIDTH_OFFSET) {
+//             let cell = Grid::get_value(x, y, grid);
+//             let value = Cell::get_value(&cell);
+//             match value {
+//                 1 => {
+//                     print!("{}", "0".red());
+//                 }
+//                 _ => {
+//                     print!("{}", "0".blue());
+//                 }
+//             }
+//         }
+//         println!("")
+//     }
+// }
 pub fn gol_algorithm_multithreaded(
-    x_pos: isize,
-    y_pos: isize,
+    x_pos: usize,
+    y_pos: usize,
     grid: &Grid,
     action_queue: Arc<SegQueue<Cell_Action>>,
 ) {
@@ -129,10 +128,14 @@ pub fn gol_algorithm_multithreaded(
     let mut neighbours_age_average: u32 = 0;
     let own_cell: Cell = Grid::get_value(x_pos, y_pos, &grid);
 
-    for x in -2..=2 {
-        for y in -2..=2 {
+    for x in (-2..=2 as isize) {
+        for y in -2..=2 as isize {
             if (x, y) != (0, 0) {
-                let cell: Cell = Grid::get_value(x_pos + x, y_pos + y, &grid);
+                let cell: Cell = Grid::get_value(
+                    (x_pos as isize + x) as usize,
+                    (y_pos as isize + y) as usize,
+                    &grid,
+                );
                 if cell.value != 0 {
                     neighbours_amount += 1;
                     neighbours_value += cell.value;
@@ -168,8 +171,10 @@ pub fn gol_algorithm_multithreaded(
 }
 
 pub fn gol_multithreaded(grid: &Grid, action_queue: Arc<SegQueue<Cell_Action>>) {
-    let iter_x_axis = ((0 - WIDTH_OFFSET + 2)..(0 + WIDTH_OFFSET - 1)).into_iter();
-    let iter_y_axis = ((0 - HEIGHT_OFFSET + 2)..(0 + HEIGHT_OFFSET - 1)).into_iter();
+    //let iter_x_axis = ((0 - WIDTH_OFFSET + 2)..(0 + WIDTH_OFFSET - 1)).into_iter();
+    let iter_x_axis = (2..(WIDTH - 1 - 2)).into_iter();
+    //let iter_y_axis = ((0 - HEIGHT_OFFSET + 2)..(0 + HEIGHT_OFFSET - 1)).into_iter();
+    let iter_y_axis = (2..(HEIGHT - 1 - 2)).into_iter();
 
     let pool = ThreadPool::with_name("calculation workers".to_owned(), NUMBER_THREADS);
 
