@@ -14,11 +14,11 @@ use threadpool::ThreadPool;
 // pub static HEIGHT_OFFSET: isize = (HEIGHT / 2) as isize;
 // pub static WIDTH_OFFSET: isize = (WIDTH / 2) as isize;
 
-static POP_MIN: u32 = 5;
-static POP_MAX: u32 = 10;
+static POP_MIN: u32 = 2;
+static POP_MAX: u32 = 5;
 
-pub static HEIGHT: usize = 199 + 1;
-pub static WIDTH: usize = 199 + 1;
+pub static HEIGHT: usize = 399 + 1;
+pub static WIDTH: usize = 399 + 1;
 pub static NUMBER_THREADS: usize = 32;
 
 // static GOL_MIN_X: usize = 1;
